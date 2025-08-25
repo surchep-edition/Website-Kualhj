@@ -2,89 +2,86 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StyzenPay - E-Wallet</title>
+  <title>TempMail Modern</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen flex flex-col items-center">
 
-  <!-- Navbar -->
-  <nav class="bg-indigo-600 p-4 text-white flex justify-between">
-    <h1 class="text-xl font-bold">StyzenPay</h1>
-    <button onclick="logout()" class="bg-red-500 px-3 py-1 rounded">Logout</button>
-  </nav>
+  <div class="mt-12 w-full max-w-3xl bg-gray-800 p-6 rounded-2xl shadow-xl">
+    <h1 class="text-3xl font-bold text-center mb-6">📧 TempMail Modern</h1>
 
-  <!-- Dashboard -->
-  <div class="max-w-md mx-auto mt-10 bg-white rounded-2xl shadow-xl p-6">
-    <h2 class="text-lg font-semibold mb-2">Halo, <span id="username">User</span></h2>
-    <p class="text-gray-600">Saldo kamu saat ini:</p>
-    <h3 class="text-3xl font-bold text-green-600 mb-6">Rp <span id="balance">0</span></h3>
-
-    <!-- Menu -->
-    <div class="grid grid-cols-3 gap-4 mb-6">
-      <button onclick="topup()" class="bg-indigo-500 text-white rounded-lg p-4 shadow hover:bg-indigo-600">Top Up</button>
-      <button onclick="transfer()" class="bg-pink-500 text-white rounded-lg p-4 shadow hover:bg-pink-600">Transfer</button>
-      <button onclick="history()" class="bg-gray-500 text-white rounded-lg p-4 shadow hover:bg-gray-600">Riwayat</button>
+    <!-- Email Address -->
+    <div class="flex items-center justify-between bg-gray-700 px-4 py-3 rounded-lg">
+      <span id="email" class="font-mono text-lg">Loading...</span>
+      <button onclick="copyEmail()" class="bg-blue-600 px-3 py-1 rounded-lg hover:bg-blue-700">Copy</button>
     </div>
 
-    <!-- History -->
-    <div>
-      <h3 class="text-lg font-semibold mb-2">📜 Riwayat Transaksi</h3>
-      <ul id="historyList" class="space-y-2 text-sm text-gray-700"></ul>
+    <!-- Inbox -->
+    <h2 class="text-xl font-semibold mt-6 mb-3">📨 Inbox</h2>
+    <div id="inbox" class="space-y-2 bg-gray-700 p-4 rounded-lg h-64 overflow-y-auto">
+      <p class="text-gray-400">Menunggu email masuk...</p>
+    </div>
+
+    <!-- Refresh -->
+    <div class="flex justify-center mt-6">
+      <button onclick="loadInbox()" class="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700">Refresh Inbox</button>
     </div>
   </div>
 
   <script>
-    let balance = 50000;
-    let user = "Styzen User";
-    let transactions = [];
+    let email = "";
+    let login = "";
+    let domain = "";
 
-    document.getElementById("username").innerText = user;
-    document.getElementById("balance").innerText = balance.toLocaleString();
+    // Generate Email
+    async function generateEmail() {
+      let res = await fetch("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1");
+      let data = await res.json();
+      email = data[0];
+      document.getElementById("email").innerText = email;
 
-    function updateBalance(amount, type, note){
-      balance += amount;
-      document.getElementById("balance").innerText = balance.toLocaleString();
-      transactions.unshift({type, note, amount, date: new Date().toLocaleString()});
-      showHistory();
+      let parts = email.split("@");
+      login = parts[0];
+      domain = parts[1];
+
+      loadInbox();
+      setInterval(loadInbox, 10000); // auto refresh tiap 10 detik
     }
 
-    function topup(){
-      let amount = parseInt(prompt("Masukkan jumlah Top Up:"));
-      if(amount > 0){
-        updateBalance(amount, "Top Up", "Isi saldo");
-      }
-    }
+    // Load Inbox
+    async function loadInbox() {
+      let res = await fetch(https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain});
+      let data = await res.json();
+      let inbox = document.getElementById("inbox");
+      inbox.innerHTML = "";
 
-    function transfer(){
-      let target = prompt("Masukkan nama penerima:");
-      let amount = parseInt(prompt("Masukkan jumlah transfer:"));
-      if(amount > 0 && amount <= balance){
-        updateBalance(-amount, "Transfer", "Ke " + target);
+      if (data.length === 0) {
+        inbox.innerHTML = "<p class='text-gray-400'>Belum ada email masuk.</p>";
       } else {
-        alert("Saldo tidak cukup atau input salah!");
+        data.forEach(async msg => {
+          let mailDetail = await fetch(https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${msg.id});
+          let detail = await mailDetail.json();
+
+          let div = document.createElement("div");
+          div.className = "bg-gray-600 p-3 rounded-lg";
+          div.innerHTML = `
+            <p class="font-bold">${detail.from}</p>
+            <p class="text-sm text-gray-300">${detail.subject}</p>
+            <p class="text-xs text-gray-400">ID: ${detail.id}</p>
+            <div class="mt-2 p-2 bg-gray-800 rounded">${detail.textBody || "Tidak ada isi."}</div>
+          `;
+          inbox.appendChild(div);
+        });
       }
     }
 
-    function history(){
-      showHistory();
-      alert("Riwayat diperbarui!");
+    // Copy Email
+    function copyEmail() {
+      navigator.clipboard.writeText(email);
+      alert("Email disalin: " + email);
     }
 
-    function showHistory(){
-      const list = document.getElementById("historyList");
-      list.innerHTML = "";
-      transactions.forEach(t => {
-        const li = document.createElement("li");
-        li.className = "p-2 border rounded bg-gray-50";
-        li.innerHTML = <strong>${t.type}</strong> - ${t.note} - Rp ${t.amount.toLocaleString()} <br><small>${t.date}</small>;
-        list.appendChild(li);
-      });
-    }
-
-    function logout(){
-      alert("Logout berhasil!");
-    }
+    generateEmail();
   </script>
 
 </body>
